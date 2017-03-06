@@ -3448,7 +3448,7 @@ function translateAndInstantiate (loader, key, source, metadata, processAnonRegi
       return source;
     }
 
-    if (metadata.load.format !== 'esm' && (metadata.load.format || !source.match(esmRegEx))) {
+    if (metadata.load.format !== 'esm' && (key.slice(-3) === ".js") && (metadata.load.format || !source.match(esmRegEx))) {
       return source;
     }
 
