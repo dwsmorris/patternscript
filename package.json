@@ -1,0 +1,20 @@
+{
+  "name": "patternscript",
+  "version": "0.0.1",
+  "description": "A pattern matching lisp",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./js/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dwsmorris/patternscript.git"
+  },
+  "author": "Darryl Morris",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/dwsmorris/patternscript/issues"
+  },
+  "homepage": "https://github.com/dwsmorris/patternscript#readme"
+}
