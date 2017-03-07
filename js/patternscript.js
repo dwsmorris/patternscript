@@ -192,10 +192,10 @@ var ps2es6 = source => {
 var rootEnvironment = () => ({
 	console: console,
 	Array: function() {return Array.prototype.slice.call(arguments);},
-	"+": function() {var result = _.curry(function(a, b) {return a + b;}); result.arity = 2; return result;}(),
-	"-": function() {var result = _.curry(function(a, b) {return a - b;}); result.arity = 2; return result;}(),
-	"*": function() {var result = _.curry(function(a, b) {return a * b;}); result.arity = 2; return result;}(),
-	"/": function() {var result = _.curry(function(a, b) {return a / b;}); result.arity = 2; return result;}(),
+	"+": function(a, b) {return a + b;},
+	"-": function(a, b) {return a - b;},
+	"*": function(a, b) {return a * b;},
+	"/": function(a, b) {return a / b;},
 	".": function(...args) {return dot.apply(this, args);}
 });
 exports.rootEnvironment = rootEnvironment;
@@ -216,9 +216,7 @@ var evaluate = function(environment, ast, details) {
 	
 	if (_.isArray(fn)) return evaluate(environment, fn.concat(parameters), details);
 	else {
-		var requiredParameters = fn.arity ? fn.arity : fn.length;
-
-		if (parameters.length >= requiredParameters) {
+		if (parameters.length >= fn.length) {
 			var processedParameters = _.map(function(parameter) {
 				return evaluate(environment, parameter);
 			}, parameters);
