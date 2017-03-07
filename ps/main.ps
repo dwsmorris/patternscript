@@ -1,5 +1,49 @@
 log <- (. console log)
 
+calculation => (- 10 (* 2 3))
+(log (calculation))
 
+(log 1) // 1
 
-(log 1)
+two => 2
+(log (two)) // 2
+
+(log (+ 1 2)) // 3
+
+addTwo => (+ 2)
+(log (addTwo 2)) // 4
+
+(log ((+ 2) 3)) // 5
+
+add => (+)
+addOne => (add 1)
+(log (addOne 5)) // 6
+
+seven => ((+ 3) 4)
+(log (seven)) // 7
+
+(log (+ ((+ 1) 2) (+ 3 2))) // 8
+
+array1 => [1 2 3]
+(log (array1))
+
+array2 => [(+ 2 3) 5 ((+ 1) 4) ((add 2) 6)]
+(log (array2))
+
+hello => hello
+(log (hello))
+
+hello2 => "hello"
+(log (hello2))
+
+hello3 => "hello, i'm tired"
+(log (hello3))
+
+boolean => true
+(log (boolean))
+
+string => "true"
+(log (string))
+
+string2 => "3333"
+(log (string2))
