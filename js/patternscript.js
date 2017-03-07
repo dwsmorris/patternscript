@@ -135,7 +135,7 @@ var set = function(...args) {
 		defn.call(this, name, parameters, expression);
 	}
 };
-var set2es6 = (...args) => {
+var set2es6 = (acc, ...args) => {
 	var name = args[0];
 	var operator = _.contains("<-", args) ? "<-" : "=>";
 	var operatorIndex = args.indexOf(operator);
@@ -143,15 +143,27 @@ var set2es6 = (...args) => {
 	var jsonValue = JSON.stringify(expression);
 
 	if (operator === "<-") {
-		return "environment['" + name + "'] = patternscript.evaluate(environment, " + jsonValue + ");"
+		return {
+			output: acc.output + acc.newlines + "environment['" + name + "'] = patternscript.evaluate(environment, " + jsonValue + ");",
+			newlines: "\n"
+		};
 	} else if (operator === "=>") {
-		return "(function() {var details = {};	var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
-			"environment['" + name + "'] = details.partial ? " + jsonValue + " :  function() {return result;};})();";
+		return {
+			output: acc.output + "(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
+				"environment['" + name + "'] = details.partial ? " + jsonValue + " :  function() {" + acc.newlines + "return result;};})();",
+			newlines: "\n"
+		};
 	}
 };
-var ast2es6 = ast => {
-	if (ast[0] === "set") return set2es6.apply(undefined, ast.slice(1));
-	else return "patternscript.evaluate(environment, " + JSON.stringify(ast) + ");";
+var ast2es6 = (acc, ast) => {
+	if (ast[0] === "set") {
+		return set2es6.apply(undefined, [acc].concat(ast.slice(1)));
+	} else {
+		return {
+			output: acc.output + acc.newlines + "patternscript.evaluate(environment, " + JSON.stringify(ast) + ");",
+			newlines: "\n"
+		}
+	}
 };
 var ps2es6 = source => {
 	var astLines = script2lines(source).map(_.flow(
@@ -164,8 +176,15 @@ var ps2es6 = source => {
 		tokens2ast
 	));
 
-	var output = "import patternscript from 'patternscript'; var environment = patternscript.rootEnvironment(); " + 
-		astLines.map(ast => ast.length ? ast2es6(ast) : "").join("\n");
+	var output =  astLines.reduce((acc, ast) => {
+		return ast.length ? ast2es6(acc, ast) : {
+			output: acc.output,
+			newlines: acc.newlines + "\n"
+		};
+	}, {
+		output: "import patternscript from 'patternscript'; var environment = patternscript.rootEnvironment(); ",
+		newlines: ""
+	}).output;
 	
 	return output;
 };
