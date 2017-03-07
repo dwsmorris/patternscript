@@ -121,6 +121,38 @@ var tokens2ast = tokens => {
 
 	return ast;
 };
+var set = function(...args) {
+	var name = args[0];
+	var operator = _.contains("<=", args) ? "<=" : "=>";
+	var operatorIndex = args.indexOf(operator);
+	var expression = args[operatorIndex + 1];
+
+	if (operator === "<=") {
+		this[name] = evaluate(expression);
+	} else if (operator === "=>") {
+		var parameters = args.slice(1, operatorIndex);
+
+		defn.call(this, name, parameters, expression);
+	}
+};
+var set2es6 = (...args) => {
+	var name = args[0];
+	var operator = _.contains("<-", args) ? "<-" : "=>";
+	var operatorIndex = args.indexOf(operator);
+	var expression = args[operatorIndex + 1];
+	var jsonValue = JSON.stringify(expression);
+
+	if (operator === "<-") {
+		return "environment['" + name + "'] = patternscript.evaluate(environment, " + jsonValue + ");"
+	} else if (operator === "=>") {
+		return "(function() {var details = {};	var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
+			"environment['" + name + "'] = details.partial ? " + jsonValue + " :  function() {return result;};})();";
+	}
+};
+var ast2es6 = ast => {
+	if (ast[0] === "set") return set2es6.apply(undefined, ast.slice(1));
+	else return "patternscript.evaluate(environment, " + JSON.stringify(ast) + ");";
+};
 var ps2es6 = source => {
 	var astLines = script2lines(source).map(_.flow(
 		trim, 
@@ -132,23 +164,61 @@ var ps2es6 = source => {
 		tokens2ast
 	));
 
-	var output = "import patternscript from 'patternscript'; var environment = patternscript.rootEnvironment(); environment.console.log('meeeep');";
+	var output = "import patternscript from 'patternscript'; var environment = patternscript.rootEnvironment(); " + 
+		astLines.map(ast => ast.length ? ast2es6(ast) : "").join("\n");
+	
 	return output;
 };
 
-exports.rootEnvironment = () => ({
+var rootEnvironment = () => ({
 	console: console,
 	Array: function() {return Array.prototype.slice.call(arguments);},
-	set: function(...args) {set.apply(this, args);},
 	"+": function() {var result = _.curry(function(a, b) {return a + b;}); result.arity = 2; return result;}(),
 	"-": function() {var result = _.curry(function(a, b) {return a - b;}); result.arity = 2; return result;}(),
 	"*": function() {var result = _.curry(function(a, b) {return a * b;}); result.arity = 2; return result;}(),
 	"/": function() {var result = _.curry(function(a, b) {return a / b;}); result.arity = 2; return result;}(),
 	".": function(...args) {return dot.apply(this, args);}
 });
+exports.rootEnvironment = rootEnvironment;
+
+
+var dot = function(object, property) {
+	var object = this[object];
+	var value = object[property];
+
+	return _.isFunction(value) ? value.bind(object) : value;
+};
+var evaluate = function(environment, ast, details) {
+	if (!_.isArray(ast) || !ast.length) return ast;
+
+	if (!details) details = {};
+	var fn = _.isArray(ast[0]) ? evaluate(environment, ast[0]) : environment[ast[0]];
+	var parameters = ast.slice(1);
+	
+	if (_.isArray(fn)) return evaluate(environment, fn.concat(parameters), details);
+	else {
+		var requiredParameters = fn.arity ? fn.arity : fn.length;
+
+		if (parameters.length >= requiredParameters) {
+			var processedParameters = _.map(function(parameter) {
+				return evaluate(environment, parameter);
+			}, parameters);
+
+			return fn.apply(environment, processedParameters); 
+		} else {
+			details.partial = true;
+			return ast;
+		}
+	}
+};
+exports.evaluate = evaluate;
 
 exports.translate = function(load, traceOpts) {
-	if (load.name.slice(-3) === ".ps") load.source = ps2es6(load.source);
+	var isPatternscript = load.name.slice(-3) === ".ps";
+	var originalSource = load.source;
+	if (isPatternscript) {
+		load.source = ps2es6(load.source);
+	}
 
 	// we don't transpile anything other than CommonJS or ESM
 	if (load.metadata.format == 'global' || load.metadata.format == 'amd' || load.metadata.format == 'json')
@@ -300,6 +370,8 @@ exports.translate = function(load, traceOpts) {
 			load.metadata.format = outputESM ? 'esm' : 'register';
 
 		load.metadata.sourceMap = output.map;
+
+		if (isPatternscript) output.map.sourcesContent[0] = originalSource;
 
 		return output.code;
 	});
