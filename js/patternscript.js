@@ -135,24 +135,34 @@ var set = function(...args) {
 		defn.call(this, name, parameters, expression);
 	}
 };
+
+var fn2es6 = (acc, name, parameters, expression) => {
+	if (parameters.length) {
+
+	} else {
+		var jsonValue = JSON.stringify(expression);
+		
+		return {
+			output: acc.output + "(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
+				"environment['" + name + "'] = details.partial ? " + jsonValue + " : function() {" + acc.newlines + "return result;};})(); ",
+			newlines: "\n"
+		};
+	}
+};
 var set2es6 = (acc, ...args) => {
 	var name = args[0];
 	var operator = _.contains("<-", args) ? "<-" : "=>";
 	var operatorIndex = args.indexOf(operator);
+	var parameters = args.slice(1, operatorIndex);
 	var expression = args[operatorIndex + 1];
-	var jsonValue = JSON.stringify(expression);
 
 	if (operator === "<-") {
 		return {
-			output: acc.output + acc.newlines + "environment['" + name + "'] = patternscript.evaluate(environment, " + jsonValue + ");",
+			output: acc.output + acc.newlines + "environment['" + name + "'] = patternscript.evaluate(environment, " + JSON.stringify(expression) + "); ",
 			newlines: "\n"
 		};
 	} else if (operator === "=>") {
-		return {
-			output: acc.output + "(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
-				"environment['" + name + "'] = details.partial ? " + jsonValue + " :  function() {" + acc.newlines + "return result;};})();",
-			newlines: "\n"
-		};
+		return fn2es6(acc, name, parameters, expression);
 	}
 };
 var ast2es6 = (acc, ast) => {
@@ -160,7 +170,7 @@ var ast2es6 = (acc, ast) => {
 		return set2es6.apply(undefined, [acc].concat(ast.slice(1)));
 	} else {
 		return {
-			output: acc.output + acc.newlines + "patternscript.evaluate(environment, " + JSON.stringify(ast) + ");",
+			output: acc.output + acc.newlines + "patternscript.evaluate(environment, " + JSON.stringify(ast) + "); ",
 			newlines: "\n"
 		}
 	}
@@ -176,7 +186,7 @@ var ps2es6 = source => {
 		tokens2ast
 	));
 
-	var output =  astLines.reduce((acc, ast) => {
+	var output =  astLines.reduce(function(acc, ast) {
 		return ast.length ? ast2es6(acc, ast) : {
 			output: acc.output,
 			newlines: acc.newlines + "\n"
