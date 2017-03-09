@@ -13,6 +13,7 @@ var externalHelpers = require('systemjs-babel-build').externalHelpers;
 var runtimeTransform = require('systemjs-babel-build').runtimeTransform;
 
 require("./lodash.fp.js");
+require("./matches.js");
 
 var babelRuntimePath;
 var modularHelpersPath = System.decanonicalize('./babel-helpers/', module.id);
@@ -136,12 +137,21 @@ var set = function(...args) {
 	}
 };
 
+var parameter2pattern = parameter => parameter.toLowerCase();
+var parameter2argument = parameter => parameter.toLowerCase();
 var fn2es6 = (acc, name, parameters, expression) => {
-	if (parameters.length) {
-
-	} else {
-		var jsonValue = JSON.stringify(expression);
+	var jsonValue = JSON.stringify(expression);
 		
+	if (parameters.length) {
+		var processedValue = _.reduce(function(acc, parameter) {
+			return acc.replace(new RegExp("\"" + parameter + "\"", "g"), parameter2argument(parameter));
+		}, jsonValue, parameters);
+		return {
+			output: acc.output +  "environment['" + name + "'] = matches.pattern('" + parameters.map(parameter2pattern).join(", ") + "', function(" +
+				parameters.map(parameter2argument).join(", ") + ") {" + acc.newlines + "return patternscript.evaluate(environment, " + processedValue + ");}); ",
+			newlines: "\n"
+		};
+	} else {
 		return {
 			output: acc.output + "environment['" + name + "'] = " + jsonValue + "; ",//"(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
 				//"environment['" + name + "'] = details.partial ? " + jsonValue + " : function() {" + acc.newlines + "return result;};})(); ",
