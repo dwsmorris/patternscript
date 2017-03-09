@@ -143,8 +143,8 @@ var fn2es6 = (acc, name, parameters, expression) => {
 		var jsonValue = JSON.stringify(expression);
 		
 		return {
-			output: acc.output + "(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
-				"environment['" + name + "'] = details.partial ? " + jsonValue + " : function() {" + acc.newlines + "return result;};})(); ",
+			output: acc.output + "environment['" + name + "'] = " + jsonValue + "; ",//"(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
+				//"environment['" + name + "'] = details.partial ? " + jsonValue + " : function() {" + acc.newlines + "return result;};})(); ",
 			newlines: "\n"
 		};
 	}
@@ -224,8 +224,9 @@ var evaluate = function(environment, ast, details) {
 	var fn = _.isArray(ast[0]) ? evaluate(environment, ast[0]) : environment[ast[0]];
 	var parameters = ast.slice(1);
 	
-	if (_.isArray(fn)) return evaluate(environment, fn.concat(parameters), details);
-	else {
+	if (_.isArray(fn)) {
+		return evaluate(environment, fn.concat(parameters), details);
+	} else if (_.isFunction(fn)) {
 		if (parameters.length >= fn.length) {
 			var processedParameters = _.map(function(parameter) {
 				return evaluate(environment, parameter);
@@ -236,6 +237,8 @@ var evaluate = function(environment, ast, details) {
 			details.partial = true;
 			return ast;
 		}
+	} else {
+		return fn;
 	}
 };
 exports.evaluate = evaluate;
