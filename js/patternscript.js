@@ -144,11 +144,11 @@ var fn2es6 = (acc, name, parameters, expression) => {
 		
 	if (parameters.length) {
 		var processedValue = _.reduce(function(acc, parameter) {
-			return acc.replace(new RegExp("\"" + parameter + "\"", "g"), parameter2argument(parameter));
+			return acc.replace(new RegExp("\"" + parameter + "\"", "g"), parameter);
 		}, jsonValue, parameters);
 		return {
 			output: acc.output +  "environment['" + name + "'] = matches.pattern('" + parameters.map(parameter2pattern).join(", ") + "', function(" +
-				parameters.map(parameter2argument).join(", ") + ") {" + acc.newlines + "return patternscript.evaluate(environment, " + processedValue + ");}); ",
+				parameters.join(", ") + ") {" + acc.newlines + "return patternscript.evaluate(environment, " + processedValue + ");}); ",
 			newlines: "\n"
 		};
 	} else {
