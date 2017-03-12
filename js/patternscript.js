@@ -211,6 +211,7 @@ var ps2es6 = source => {
 
 var rootEnvironment = () => ({
 	console: console,
+	Math: Math,
 	Array: function() {return Array.prototype.slice.call(arguments);},
 	"+": function(a, b) {return a + b;},
 	"-": function(a, b) {return a - b;},
