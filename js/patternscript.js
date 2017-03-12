@@ -76,7 +76,7 @@ var stripComments = line => {
 };
 var trim = line => line.trim();
 var expandSet = line => (line && (line[0] !== "(")) ? "(set " + line + ")" : line;
-var expandArrays = line => line.replace(/\[/g, "(Array ").replace("]", ")");
+var expandArrays = line => line.replace(/\[/g, "(Array ").replace(/]/g, ")");
 var spaceBrackets = line => line.replace(/\(/g, " ( ").replace(/\)/g, " ) ");
 var tokenize = line => {
 	var quotationSplit = line.split(/([^"]*)/);
