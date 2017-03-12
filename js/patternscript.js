@@ -141,20 +141,21 @@ var parameter2pattern = parameter => parameter.toLowerCase();
 var parameter2argument = parameter => parameter.toLowerCase();
 var fn2es6 = (acc, name, parameters, expression) => {
 	var jsonValue = JSON.stringify(expression);
+	var environmentRef = "environment['" + name + "']";
 		
 	if (parameters.length) {
 		var processedValue = _.reduce(function(acc, parameter) {
 			return acc.replace(new RegExp("\"" + parameter + "\"", "g"), parameter);
 		}, jsonValue, parameters);
 		return {
-			output: acc.output +  "environment['" + name + "'] = matches.pattern('" + parameters.map(parameter2pattern).join(", ") + "', function(" +
-				parameters.join(", ") + ") {" + acc.newlines + "return patternscript.evaluate(environment, " + processedValue + ");}); ",
+			output: acc.output +  environmentRef + " = matches.pattern('" + parameters.map(parameter2pattern).join(", ") + "', function(" +
+				parameters.join(", ") + ") {" + acc.newlines + "return patternscript.evaluate(environment, " + processedValue + ");}); " +
+				environmentRef + ".arity = " + parameters.length + "; ",
 			newlines: "\n"
 		};
 	} else {
 		return {
-			output: acc.output + "environment['" + name + "'] = " + jsonValue + "; ",//"(function() {var details = {}; var result = patternscript.evaluate(environment, " + jsonValue + ", details); " +
-				//"environment['" + name + "'] = details.partial ? " + jsonValue + " : function() {" + acc.newlines + "return result;};})(); ",
+			output: acc.output + environmentRef + " = " + jsonValue + "; ",
 			newlines: "\n"
 		};
 	}
@@ -238,14 +239,15 @@ var evaluate = function(environment, ast, details) {
 	if (_.isArray(fn)) {
 		return evaluate(environment, fn.concat(parameters), details);
 	} else if (_.isFunction(fn)) {
-		if (parameters.length >= fn.length) {
+		var arity = fn.arity || fn.length;
+
+		if (parameters.length >= arity) {
 			var processedParameters = _.map(function(parameter) {
 				return evaluate(environment, parameter);
 			}, parameters);
 
 			return fn.apply(environment, processedParameters); 
 		} else {
-			details.partial = true;
 			return ast;
 		}
 	} else {
